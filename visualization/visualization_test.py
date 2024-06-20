@@ -79,6 +79,8 @@ class MainWindow(QMainWindow):
         # Load data
         self.data = read_data('mydata.json')
         self.parameters = list(self.data["parameters"].keys())
+        self.cost = np.array(self.data["results"]['cost'])
+        self.n_datapoints = len(self.cost)
 
         # Populate combo boxes
         for combo_x, combo_y in zip(self.param_combos_x, self.param_combos_y):
@@ -105,16 +107,17 @@ class MainWindow(QMainWindow):
                 ax.autoscale(True)
                 parameter_x = self.data["parameters"][param_x]
                 parameter_y = self.data["parameters"][param_y]
-                cost = np.array(self.data["results"]['cost'])
 
-                scatter = ax.scatter(parameter_x, parameter_y, c=cost, cmap='viridis', s=4)
+                #scatter = ax.scatter(parameter_x, parameter_y, c=self.cost, cmap='viridis', s=4)
+                scatter = ax.scatter(parameter_x, parameter_y, c="red", cmap='viridis', s=2)
                 self.figure.colorbar(scatter, ax=ax, label='Cost')
                 ax.set_xlabel(param_x)
                 ax.set_ylabel(param_y)
 
                 # create the begraund colormap
-                k_nearest = 40
-                N_size_imview = 30
+                k_nearest = 5
+                radius_ball = 0.05
+                N_size_imview = 100
 
                 enl_x, enl_y = (max(parameter_x) - min(parameter_x))*0.1, (max(parameter_y) - min(parameter_y))*0.1
                 extent=[min(parameter_x)-enl_x,max(parameter_x)+enl_x,min(parameter_y)-enl_y,max(parameter_y)+enl_y]
@@ -123,14 +126,27 @@ class MainWindow(QMainWindow):
 
                 if k_nearest == 1:
                     XY = np.array([np.array(parameter_x), np.array(parameter_y)]).T
-                    resampled = griddata(XY, np.array(cost), xy, method='nearest').reshape([N_size_imview,N_size_imview])
+                    resampled = griddata(XY, self.cost, xy, method='nearest').reshape([N_size_imview,N_size_imview])
                 elif k_nearest > 1:
                     # prepare KDTree
                     _KDTree = KDTree(np.array([parameter_x, parameter_y]).T)
                     
-                    _, indexes = _KDTree.query(xy, k_nearest)
-                    resampled = np.max(cost[indexes], axis=1).reshape([N_size_imview, N_size_imview])
-
+                    _, indexes = _KDTree.query(xy, k=k_nearest, p=2, distance_upper_bound=radius_ball)
+                    
+                    #resampled = np.zeros(N_size_imview**2)
+                    
+                    #for i, indexes_in_ball in enumerate(indexes):
+                        
+                        #indexes_in_ball = list(filter(lambda a: a != self.n_datapoints, list(indexes_in_ball)))
+                        
+                        #if list(indexes_in_ball) == []:
+                        #    resampled[i] = np.nan
+                        #else:
+                    self._cost_aus_nan = np.array(list(self.cost) + [np.nan])
+                    resampled = np.nanmax(self._cost_aus_nan[indexes], axis=1).reshape([N_size_imview,N_size_imview])
+                    #resampled = resampled.reshape([N_size_imview,N_size_imview])
+                    # else:
+                    #     resampled = np.max(self.cost[indexes], axis=1).reshape([N_size_imview, N_size_imview])
                 ax.imshow(resampled, extent=extent, interpolation="lanczos", aspect="auto") 
                 
 
