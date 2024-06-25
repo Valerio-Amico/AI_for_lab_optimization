@@ -5,11 +5,11 @@ if __name__ == "__main__":
 
     n_points = 100
     times = np.linspace(0,1,n_points)
-    X=np.random.random(n_points)
-    Y=np.random.random(n_points)
-    Q=np.random.random(n_points)
+    X=np.random.normal(size = n_points)
+    Y=np.random.normal(size = n_points)
+    Q=np.random.random(size = n_points)
 
-    Z=X*Y
+    Z=np.exp(-X*X-Y*Y)*Q + np.random.random(size=n_points)*0.5
 
     dict = {
         "time" : list(times),
@@ -25,5 +25,5 @@ if __name__ == "__main__":
         }
     }
 
-    with open("mydata_100_time.json","w") as file:
+    with open("mydata_100.json","w") as file:
         json.dump(dict, file)
